@@ -1761,6 +1761,16 @@ def _fill_in_launchable_resources(
                                     'or add "+" to the end of the memory size '
                                     'to allow for larger instances.'
                                     f'{colorama.Style.RESET_ALL}')
+                    if (resources.max_hourly_cost is not None or
+                            resources.max_hourly_cost_spot is not None):
+                        spot_msg = (' or max_hourly_cost_spot'
+                                    if resources.max_hourly_cost_spot
+                                    is not None else '')
+                        logger.info(
+                            f'{colorama.Fore.LIGHTBLACK_EX}'
+                            f'- Try increasing max_hourly_cost{spot_msg}'
+                            ' to allow for more expensive instances.'
+                            f'{colorama.Style.RESET_ALL}')
                 for cloud, hint in hints.items():
                     logger.info(f'{colorama.Fore.LIGHTBLACK_EX}'
                                 f'{repr(cloud)}: {hint}'

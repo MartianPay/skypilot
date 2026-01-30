@@ -54,12 +54,13 @@ def get_default_instance_type(
     disk_tier: Optional[str] = None,
     region: Optional[str] = None,
     zone: Optional[str] = None,
+    max_hourly_cost: Optional[float] = None,
 ) -> Optional[str]:
     # NOTE: After expanding catalog to multiple entries, you may
     # want to specify a default instance type or family.
     del disk_tier  # unused
     return common.get_instance_type_for_cpus_mem_impl(_df, cpus, memory, region,
-                                                      zone)
+                                                      zone, max_hourly_cost)
 
 
 def get_accelerators_from_instance_type(
@@ -75,6 +76,7 @@ def get_instance_type_for_accelerator(
     use_spot: bool = False,
     region: Optional[str] = None,
     zone: Optional[str] = None,
+    max_hourly_cost: Optional[float] = None,
 ) -> Tuple[Optional[List[str]], List[str]]:
     """Returns a list of instance types that have the given accelerator."""
     if zone is not None:
@@ -89,6 +91,7 @@ def get_instance_type_for_accelerator(
         use_spot=use_spot,
         region=region,
         zone=zone,
+        max_hourly_cost=max_hourly_cost,
     )
 
 

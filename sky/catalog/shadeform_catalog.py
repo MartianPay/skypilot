@@ -95,16 +95,18 @@ def get_vcpus_mem_from_instance_type(
             _get_df(), instance_type), (None, None))
 
 
-def get_default_instance_type(cpus: Optional[str] = None,
-                              memory: Optional[str] = None,
-                              disk_tier: Optional[str] = None,
-                              region: Optional[str] = None,
-                              zone: Optional[str] = None) -> Optional[str]:
+def get_default_instance_type(
+        cpus: Optional[str] = None,
+        memory: Optional[str] = None,
+        disk_tier: Optional[str] = None,
+        region: Optional[str] = None,
+        zone: Optional[str] = None,
+        max_hourly_cost: Optional[float] = None) -> Optional[str]:
     """Get default instance type based on requirements."""
     del disk_tier  # Shadeform doesn't support custom disk tiers yet
     return _call_or_default(
         lambda: common.get_instance_type_for_cpus_mem_impl(
-            _get_df(), cpus, memory, region, zone), None)
+            _get_df(), cpus, memory, region, zone, max_hourly_cost), None)
 
 
 def get_accelerators_from_instance_type(
@@ -116,13 +118,15 @@ def get_accelerators_from_instance_type(
 
 
 def get_instance_type_for_accelerator(
-        acc_name: str,
-        acc_count: int,
-        cpus: Optional[str] = None,
-        memory: Optional[str] = None,
-        use_spot: bool = False,
-        region: Optional[str] = None,
-        zone: Optional[str] = None) -> Tuple[Optional[List[str]], List[str]]:
+    acc_name: str,
+    acc_count: int,
+    cpus: Optional[str] = None,
+    memory: Optional[str] = None,
+    use_spot: bool = False,
+    region: Optional[str] = None,
+    zone: Optional[str] = None,
+    max_hourly_cost: Optional[float] = None
+) -> Tuple[Optional[List[str]], List[str]]:
     """Returns a list of instance types that have the given accelerator."""
     if use_spot:
         # Return empty lists since spot is not supported
@@ -137,7 +141,8 @@ def get_instance_type_for_accelerator(
             memory=memory,
             use_spot=use_spot,
             region=region,
-            zone=zone), (None, []))
+            zone=zone,
+            max_hourly_cost=max_hourly_cost), (None, []))
 
 
 def get_region_zones_for_instance_type(instance_type: str,

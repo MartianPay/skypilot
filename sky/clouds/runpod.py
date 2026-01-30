@@ -150,20 +150,23 @@ class RunPod(clouds.Cloud):
         return 0.0
 
     @classmethod
-    def get_default_instance_type(cls,
-                                  cpus: Optional[str] = None,
-                                  memory: Optional[str] = None,
-                                  disk_tier: Optional[
-                                      resources_utils.DiskTier] = None,
-                                  region: Optional[str] = None,
-                                  zone: Optional[str] = None) -> Optional[str]:
+    def get_default_instance_type(
+            cls,
+            cpus: Optional[str] = None,
+            memory: Optional[str] = None,
+            disk_tier: Optional[resources_utils.DiskTier] = None,
+            region: Optional[str] = None,
+            zone: Optional[str] = None,
+            max_hourly_cost: Optional[float] = None) -> Optional[str]:
         """Returns the default instance type for RunPod."""
-        return catalog.get_default_instance_type(cpus=cpus,
-                                                 memory=memory,
-                                                 disk_tier=disk_tier,
-                                                 region=region,
-                                                 zone=zone,
-                                                 clouds='runpod')
+        return catalog.get_default_instance_type(
+            cpus=cpus,
+            memory=memory,
+            disk_tier=disk_tier,
+            region=region,
+            zone=zone,
+            max_hourly_cost=max_hourly_cost,
+            clouds='runpod')
 
     @classmethod
     def get_accelerators_from_instance_type(
@@ -258,7 +261,8 @@ class RunPod(clouds.Cloud):
                 memory=resources.memory,
                 disk_tier=resources.disk_tier,
                 region=resources.region,
-                zone=resources.zone)
+                zone=resources.zone,
+                max_hourly_cost=resources.max_hourly_cost)
             if default_instance_type is None:
                 # TODO: Add hints to all return values in this method to help
                 #  users understand why the resources are not launchable.
@@ -269,6 +273,9 @@ class RunPod(clouds.Cloud):
 
         assert len(accelerators) == 1, resources
         acc, acc_count = list(accelerators.items())[0]
+        # Use spot price limit if spot is requested, otherwise on-demand limit
+        max_price = (resources.max_hourly_cost_spot
+                     if resources.use_spot else resources.max_hourly_cost)
         (instance_list,
          fuzzy_candidate_list) = catalog.get_instance_type_for_accelerator(
              acc,
@@ -277,7 +284,8 @@ class RunPod(clouds.Cloud):
              cpus=resources.cpus,
              region=resources.region,
              zone=resources.zone,
-             clouds='runpod')
+             clouds='runpod',
+             max_hourly_cost=max_price)
         if instance_list is None:
             return resources_utils.FeasibleResources([], fuzzy_candidate_list,
                                                      None)

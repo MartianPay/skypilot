@@ -1,0 +1,85 @@
+# Example: Using max_hourly_cost to control instance selection
+#
+# This example demonstrates how to use max_hourly_cost and max_hourly_cost_spot
+# to limit the hourly cost of instances selected by SkyPilot.
+#
+# Tips for using max_hourly_cost:
+#
+# 1. Use max_hourly_cost for on-demand instance limits
+# 2. Use max_hourly_cost_spot for spot instance limits
+# 3. Combine both to support fallback (e.g., if spot unavailable, try on-demand)
+# 4. Check current pricing: https://instances.vantage.sh/
+# 5. If no instances are found, increase the limit or relax other constraints
+# 6. The cost includes both compute and accelerator costs
+
+# Example 1: Basic usage with max_hourly_cost
+# This will only select instances that cost $2/hour or less
+name: budget-training
+
+resources:
+  accelerators: V100:1
+  max_hourly_cost: 2.0
+
+setup: |
+  echo "Running on an instance that costs at most $2/hour"
+
+run: |
+  python train.py
+
+# Uncomment below for additional examples:
+
+# # Example 2: Using max_hourly_cost_spot for spot instances
+# # This will only select spot instances that cost $1/hour or less
+# name: budget-spot-training
+#
+# resources:
+#   accelerators: V100:1
+#   use_spot: true
+#   max_hourly_cost_spot: 1.0
+#
+# setup: |
+#   echo "Running on a spot instance that costs at most $1/hour"
+#
+# run: |
+#   python train.py
+
+# # Example 3: Different limits for on-demand vs spot
+# # This demonstrates using both max_hourly_cost and max_hourly_cost_spot
+# name: flexible-budget-training
+#
+# resources:
+#   accelerators: V100:1
+#   max_hourly_cost: 3.0        # On-demand instances up to $3/hour
+#   max_hourly_cost_spot: 1.5   # Spot instances up to $1.5/hour
+#
+# setup: |
+#   echo "Running with flexible pricing constraints"
+#
+# run: |
+#   python train.py
+
+# # Example 4: Budget constraint with CPU/memory requirements
+# # Combines resource requirements with cost limits
+# name: cpu-budget-job
+#
+# resources:
+#   cpus: 8+
+#   memory: 32+
+#   max_hourly_cost: 0.5  # Only instances under $0.50/hour
+#
+# run: |
+#   echo "Running on a budget-friendly CPU instance"
+#   ./process_data.sh
+
+# # Example 5: Multi-region with cost constraints
+# # Let SkyPilot choose the cheapest region within budget
+# name: multi-region-budget
+#
+# resources:
+#   accelerators: T4:1
+#   max_hourly_cost: 0.6
+#   # SkyPilot will automatically select the cheapest region
+#   # that has T4 instances under $0.60/hour
+#
+# run: |
+#   python inference.py

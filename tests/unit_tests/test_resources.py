@@ -1530,3 +1530,85 @@ def test_kubernetes_end_to_end_make_deploy_variables(mock_check_deps,
     # Clean up
     del os.environ[skypilot_config.ENV_VAR_SKYPILOT_CONFIG]
     importlib.reload(skypilot_config)
+
+
+def test_max_hourly_cost_parsing():
+    """Test that max_hourly_cost fields parse correctly from YAML."""
+    # Test with max_hourly_cost only
+    r_set = Resources.from_yaml_config({'max_hourly_cost': 5.0})
+    r = list(r_set)[0]
+    assert r.max_hourly_cost == 5.0
+    assert r.max_hourly_cost_spot is None
+
+    # Test with max_hourly_cost_spot only
+    r_set = Resources.from_yaml_config({'max_hourly_cost_spot': 2.5})
+    r = list(r_set)[0]
+    assert r.max_hourly_cost is None
+    assert r.max_hourly_cost_spot == 2.5
+
+    # Test with both
+    r_set = Resources.from_yaml_config({
+        'max_hourly_cost': 10.0,
+        'max_hourly_cost_spot': 3.0
+    })
+    r = list(r_set)[0]
+    assert r.max_hourly_cost == 10.0
+    assert r.max_hourly_cost_spot == 3.0
+
+    # Test with integers (should be accepted)
+    r_set = Resources.from_yaml_config({
+        'max_hourly_cost': 5,
+        'max_hourly_cost_spot': 2
+    })
+    r = list(r_set)[0]
+    assert r.max_hourly_cost == 5
+    assert r.max_hourly_cost_spot == 2
+
+
+def test_max_hourly_cost_validation():
+    """Test that negative max_hourly_cost values are rejected."""
+    # Test negative max_hourly_cost
+    r = Resources(max_hourly_cost=-1.0)
+    with pytest.raises(ValueError,
+                       match='max_hourly_cost must be non-negative'):
+        r.validate()
+
+    # Test negative max_hourly_cost_spot
+    r = Resources(max_hourly_cost_spot=-0.5)
+    with pytest.raises(ValueError,
+                       match='max_hourly_cost_spot must be non-negative'):
+        r.validate()
+
+    # Test valid values (should not raise)
+    r = Resources(max_hourly_cost=0.0, max_hourly_cost_spot=0.0)
+    r.validate()  # Should not raise
+
+    r = Resources(max_hourly_cost=10.5, max_hourly_cost_spot=5.0)
+    r.validate()  # Should not raise
+
+
+def test_max_hourly_cost_serialization():
+    """Test that max_hourly_cost fields serialize to/from YAML correctly."""
+    r = Resources(max_hourly_cost=8.5, max_hourly_cost_spot=3.2)
+    config = r.to_yaml_config()
+    assert config['max_hourly_cost'] == 8.5
+    assert config['max_hourly_cost_spot'] == 3.2
+
+    # Round-trip test
+    r2_set = Resources.from_yaml_config(config)
+    r2 = list(r2_set)[0]
+    assert r2.max_hourly_cost == r.max_hourly_cost
+    assert r2.max_hourly_cost_spot == r.max_hourly_cost_spot
+
+
+def test_max_hourly_cost_copy():
+    """Test that max_hourly_cost fields are preserved in copy()."""
+    r = Resources(max_hourly_cost=7.0, max_hourly_cost_spot=2.5)
+    r2 = r.copy()
+    assert r2.max_hourly_cost == 7.0
+    assert r2.max_hourly_cost_spot == 2.5
+
+    # Test override in copy
+    r3 = r.copy(max_hourly_cost=10.0)
+    assert r3.max_hourly_cost == 10.0
+    assert r3.max_hourly_cost_spot == 2.5  # Should be preserved

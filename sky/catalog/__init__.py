@@ -214,13 +214,14 @@ def get_vcpus_mem_from_instance_type(
                                instance_type)
 
 
-def get_default_instance_type(cpus: Optional[str] = None,
-                              memory: Optional[str] = None,
-                              disk_tier: Optional[
-                                  resources_utils.DiskTier] = None,
-                              region: Optional[str] = None,
-                              zone: Optional[str] = None,
-                              clouds: CloudFilter = None) -> Optional[str]:
+def get_default_instance_type(
+        cpus: Optional[str] = None,
+        memory: Optional[str] = None,
+        disk_tier: Optional[resources_utils.DiskTier] = None,
+        region: Optional[str] = None,
+        zone: Optional[str] = None,
+        clouds: CloudFilter = None,
+        max_hourly_cost: Optional[float] = None) -> Optional[str]:
     """Returns the cloud's default instance type for given #vCPUs and memory.
 
     For example, if cpus='4', this method returns the default instance type
@@ -233,7 +234,7 @@ def get_default_instance_type(cpus: Optional[str] = None,
     the given CPU and memory requirement.
     """
     return _map_clouds_catalog(clouds, 'get_default_instance_type', cpus,
-                               memory, disk_tier, region, zone)
+                               memory, disk_tier, region, zone, max_hourly_cost)
 
 
 def get_accelerators_from_instance_type(
@@ -260,6 +261,7 @@ def get_instance_type_for_accelerator(
     region: Optional[str] = None,
     zone: Optional[str] = None,
     clouds: CloudFilter = None,
+    max_hourly_cost: Optional[float] = None,
 ) -> Tuple[Optional[List[str]], List[str]]:
     """Filter the instance types based on resource requirements.
 
@@ -268,7 +270,7 @@ def get_instance_type_for_accelerator(
     """
     return _map_clouds_catalog(clouds, 'get_instance_type_for_accelerator',
                                acc_name, acc_count, cpus, memory, use_spot,
-                               region, zone)
+                               region, zone, max_hourly_cost)
 
 
 def get_accelerator_hourly_cost(

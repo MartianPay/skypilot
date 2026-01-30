@@ -161,18 +161,22 @@ class Fluidstack(clouds.Cloud):
         return 'Fluidstack'
 
     @classmethod
-    def get_default_instance_type(cls,
-                                  cpus: Optional[str] = None,
-                                  memory: Optional[str] = None,
-                                  disk_tier: Optional[DiskTier] = None,
-                                  region: Optional[str] = None,
-                                  zone: Optional[str] = None) -> Optional[str]:
-        return catalog.get_default_instance_type(cpus=cpus,
-                                                 memory=memory,
-                                                 disk_tier=disk_tier,
-                                                 region=region,
-                                                 zone=zone,
-                                                 clouds='fluidstack')
+    def get_default_instance_type(
+            cls,
+            cpus: Optional[str] = None,
+            memory: Optional[str] = None,
+            disk_tier: Optional[DiskTier] = None,
+            region: Optional[str] = None,
+            zone: Optional[str] = None,
+            max_hourly_cost: Optional[float] = None) -> Optional[str]:
+        return catalog.get_default_instance_type(
+            cpus=cpus,
+            memory=memory,
+            disk_tier=disk_tier,
+            region=region,
+            zone=zone,
+            max_hourly_cost=max_hourly_cost,
+            clouds='fluidstack')
 
     @classmethod
     def get_accelerators_from_instance_type(
@@ -255,7 +259,8 @@ class Fluidstack(clouds.Cloud):
                 memory=resources.memory,
                 disk_tier=resources.disk_tier,
                 region=resources.region,
-                zone=resources.zone)
+                zone=resources.zone,
+                max_hourly_cost=resources.max_hourly_cost)
             if default_instance_type is None:
                 return resources_utils.FeasibleResources([], [], None)
             else:
@@ -264,6 +269,9 @@ class Fluidstack(clouds.Cloud):
 
         assert len(accelerators) == 1, resources
         acc, acc_count = list(accelerators.items())[0]
+        # Use spot price limit if spot is requested, otherwise on-demand limit
+        max_price = (resources.max_hourly_cost_spot
+                     if resources.use_spot else resources.max_hourly_cost)
         (instance_list,
          fuzzy_candidate_list) = catalog.get_instance_type_for_accelerator(
              acc,
@@ -273,7 +281,8 @@ class Fluidstack(clouds.Cloud):
              memory=resources.memory,
              region=resources.region,
              zone=resources.zone,
-             clouds='fluidstack')
+             clouds='fluidstack',
+             max_hourly_cost=max_price)
         if instance_list is None:
             return resources_utils.FeasibleResources([], fuzzy_candidate_list,
                                                      None)

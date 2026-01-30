@@ -275,11 +275,16 @@ class Seeweb(clouds.Cloud):
         disk_tier: Optional[resources_utils.DiskTier] = None,
         region: Optional[str] = None,
         zone: Optional[str] = None,
+        max_hourly_cost: Optional[float] = None,
     ) -> Optional[str]:
-        result = catalog.get_default_instance_type(cpus=cpus,
-                                                   memory=memory,
-                                                   disk_tier=disk_tier,
-                                                   clouds='seeweb')
+        result = catalog.get_default_instance_type(
+            cpus=cpus,
+            memory=memory,
+            disk_tier=disk_tier,
+            region=region,
+            zone=zone,
+            max_hourly_cost=max_hourly_cost,
+            clouds='seeweb')
         return result
 
     def _get_feasible_launchable_resources(
@@ -305,6 +310,9 @@ class Seeweb(clouds.Cloud):
 
                 # Use catalog to find instance type for this accelerator
                 # This leverages the catalog system to find suitable instances
+                # Use spot price limit if spot requested, else on-demand
+                max_price = (resources.max_hourly_cost_spot if
+                             resources.use_spot else resources.max_hourly_cost)
                 (
                     instance_types,
                     fuzzy_candidates,
@@ -317,6 +325,7 @@ class Seeweb(clouds.Cloud):
                     region=resources.region,
                     zone=resources.zone,
                     clouds='seeweb',
+                    max_hourly_cost=max_price,
                 )
 
                 if instance_types and len(instance_types) > 0:
@@ -338,6 +347,7 @@ class Seeweb(clouds.Cloud):
                     memory=resources.memory,
                     region=resources.region,
                     zone=resources.zone,
+                    max_hourly_cost=resources.max_hourly_cost,
                 )
 
                 if default_instance_type:

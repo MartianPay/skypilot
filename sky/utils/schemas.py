@@ -369,6 +369,14 @@ def _get_single_resources_schema():
                 'minimum': constants.MIN_PRIORITY,
                 'maximum': constants.MAX_PRIORITY,
             },
+            'max_hourly_cost': {
+                'type': 'number',
+                'minimum': 0,
+            },
+            'max_hourly_cost_spot': {
+                'type': 'number',
+                'minimum': 0,
+            },
             # The following fields are for internal use only. Should not be
             # specified in the task config.
             '_docker_login_config': {

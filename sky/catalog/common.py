@@ -486,12 +486,36 @@ def _filter_region_zone(df: 'pd.DataFrame', region: Optional[str],
     return df
 
 
+def _filter_with_max_price(df: 'pd.DataFrame', max_hourly_cost: Optional[float],
+                           use_spot: bool) -> 'pd.DataFrame':
+    """Filter instances by max hourly cost.
+
+    Args:
+        df: The catalog cloud catalog data frame.
+        max_hourly_cost: The maximum hourly cost in USD. If None, no filtering.
+        use_spot: Whether to filter spot or on-demand prices.
+
+    Returns:
+        Filtered data frame with instances at or below the max cost.
+    """
+    if max_hourly_cost is None:
+        return df
+    price_str = 'SpotPrice' if use_spot else 'Price'
+    # Remove instances with NaN prices (unavailable)
+    # pylint: disable=invalid-unary-operand-type
+    df = df[~pd.isna(df[price_str])]
+    # Filter by max price
+    df = df[df[price_str] <= max_hourly_cost]
+    return df
+
+
 def get_instance_type_for_cpus_mem_impl(
         df: 'pd.DataFrame',
         cpus: Optional[str],
         memory_gb_or_ratio: Optional[str],
         region: Optional[str] = None,
-        zone: Optional[str] = None) -> Optional[str]:
+        zone: Optional[str] = None,
+        max_hourly_cost: Optional[float] = None) -> Optional[str]:
     """Returns the cheapest instance type that satisfies the requirements.
 
     Args:
@@ -510,6 +534,7 @@ def get_instance_type_for_cpus_mem_impl(
     df = _filter_region_zone(df, region, zone)
     df = _filter_with_cpus(df, cpus)
     df = _filter_with_mem(df, memory_gb_or_ratio)
+    df = _filter_with_max_price(df, max_hourly_cost, use_spot=False)
     if df.empty:
         return None
     # Sort by the price.
@@ -565,6 +590,7 @@ def get_instance_type_for_accelerator_impl(
     use_spot: bool = False,
     region: Optional[str] = None,
     zone: Optional[str] = None,
+    max_hourly_cost: Optional[float] = None,
 ) -> Tuple[Optional[List[str]], List[str]]:
     """Filter the instance types based on resource requirements.
 
@@ -595,6 +621,7 @@ def get_instance_type_for_accelerator_impl(
     result = _filter_with_cpus(result, cpus)
     result = _filter_with_mem(result, memory)
     result = _filter_region_zone(result, region, zone)
+    result = _filter_with_max_price(result, max_hourly_cost, use_spot)
     if result.empty:
         return ([], [])
 

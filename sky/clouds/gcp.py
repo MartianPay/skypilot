@@ -443,19 +443,22 @@ class GCP(clouds.Cloud):
         return cls._get_image_size(image_id)
 
     @classmethod
-    def get_default_instance_type(cls,
-                                  cpus: Optional[str] = None,
-                                  memory: Optional[str] = None,
-                                  disk_tier: Optional[
-                                      resources_utils.DiskTier] = None,
-                                  region: Optional[str] = None,
-                                  zone: Optional[str] = None) -> Optional[str]:
-        return catalog.get_default_instance_type(cpus=cpus,
-                                                 memory=memory,
-                                                 disk_tier=disk_tier,
-                                                 region=region,
-                                                 zone=zone,
-                                                 clouds='gcp')
+    def get_default_instance_type(
+            cls,
+            cpus: Optional[str] = None,
+            memory: Optional[str] = None,
+            disk_tier: Optional[resources_utils.DiskTier] = None,
+            region: Optional[str] = None,
+            zone: Optional[str] = None,
+            max_hourly_cost: Optional[float] = None) -> Optional[str]:
+        return catalog.get_default_instance_type(
+            cpus=cpus,
+            memory=memory,
+            disk_tier=disk_tier,
+            region=region,
+            zone=zone,
+            max_hourly_cost=max_hourly_cost,
+            clouds='gcp')
 
     @classmethod
     def failover_disk_tier(
@@ -695,7 +698,8 @@ class GCP(clouds.Cloud):
                 memory=resources.memory,
                 disk_tier=resources.disk_tier,
                 region=resources.region,
-                zone=resources.zone)
+                zone=resources.zone,
+                max_hourly_cost=resources.max_hourly_cost)
             if host_vm_type is None:
                 # TODO: Add hints to all return values in this method to help
                 #  users understand why the resources are not launchable.
@@ -720,6 +724,9 @@ class GCP(clouds.Cloud):
 
         # For TPU VMs, the instance type is fixed to 'TPU-VM'. However, we still
         # need to call the below function to get the fuzzy candidate list.
+        # Use spot price limit if spot is requested, otherwise on-demand limit
+        max_price = (resources.max_hourly_cost_spot
+                     if resources.use_spot else resources.max_hourly_cost)
         (instance_list,
          fuzzy_candidate_list) = catalog.get_instance_type_for_accelerator(
              acc,
@@ -729,7 +736,8 @@ class GCP(clouds.Cloud):
              use_spot=resources.use_spot,
              region=resources.region,
              zone=resources.zone,
-             clouds='gcp')
+             clouds='gcp',
+             max_hourly_cost=max_price)
 
         if instance_list is None:
             return resources_utils.FeasibleResources([], fuzzy_candidate_list,

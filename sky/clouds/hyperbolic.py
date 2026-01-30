@@ -174,6 +174,9 @@ class Hyperbolic(clouds.Cloud):
         if accelerators is not None:
             assert len(accelerators) == 1, resources
             acc, acc_count = list(accelerators.items())[0]
+            # Use spot price limit if spot requested, else on-demand limit
+            max_price = (resources.max_hourly_cost_spot
+                         if resources.use_spot else resources.max_hourly_cost)
             (instance_list,
              fuzzy_candidate_list) = catalog.get_instance_type_for_accelerator(
                  acc,
@@ -183,7 +186,8 @@ class Hyperbolic(clouds.Cloud):
                  memory=resources.memory,
                  region=resources.region,
                  zone=resources.zone,
-                 clouds='hyperbolic')
+                 clouds='hyperbolic',
+                 max_hourly_cost=max_price)
             if instance_list is None:
                 return resources_utils.FeasibleResources([],
                                                          fuzzy_candidate_list,

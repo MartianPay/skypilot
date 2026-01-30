@@ -143,7 +143,7 @@ class Resources:
     """
     # If any fields changed, increment the version. For backward compatibility,
     # modify the __setstate__ method to handle the old version.
-    _VERSION = 28
+    _VERSION = 29
 
     def __init__(
         self,
@@ -168,6 +168,8 @@ class Resources:
         autostop: Union[bool, int, str, Dict[str, Any], None] = None,
         priority: Optional[int] = None,
         volumes: Optional[List[Dict[str, Any]]] = None,
+        max_hourly_cost: Optional[Union[int, float]] = None,
+        max_hourly_cost_spot: Optional[Union[int, float]] = None,
         # Internal use only.
         # pylint: disable=invalid-name
         _docker_login_config: Optional[docker_utils.DockerLoginConfig] = None,
@@ -268,6 +270,12 @@ class Resources:
             integer from -1000 to 1000, where higher values indicate higher priority.
             If None, no priority is set.
           volumes: the volumes to mount on the instance.
+          max_hourly_cost: the maximum hourly cost in USD for on-demand instances.
+            If specified, only instances with hourly cost at or below this limit
+            will be considered. If None, no cost limit is applied.
+          max_hourly_cost_spot: the maximum hourly cost in USD for spot instances.
+            If specified, only spot instances with hourly cost at or below this
+            limit will be considered. If None, no cost limit is applied for spot.
           _docker_login_config: the docker configuration to use. This includes
             the docker username, password, and registry server. If None, skip
             docker login.
@@ -414,6 +422,8 @@ class Resources:
         self._set_autostop_config(autostop)
         self._set_priority(priority)
         self._set_volumes(volumes)
+        self._max_hourly_cost = max_hourly_cost
+        self._max_hourly_cost_spot = max_hourly_cost_spot
 
     def validate(self):
         """Validate the resources and infer the missing fields if possible."""
@@ -427,6 +437,7 @@ class Resources:
         self._try_validate_volumes()
         self._try_validate_ports()
         self._try_validate_labels()
+        self._try_validate_max_prices()
 
     # When querying the accelerators inside this func (we call self.accelerators
     # which is a @property), we will check the cloud's catalog, which can error
@@ -680,6 +691,16 @@ class Resources:
         Higher values indicate higher priority. Valid range is -1000 to 1000.
         """
         return self._priority
+
+    @property
+    def max_hourly_cost(self) -> Optional[Union[int, float]]:
+        """The maximum hourly cost for on-demand instances in USD."""
+        return self._max_hourly_cost
+
+    @property
+    def max_hourly_cost_spot(self) -> Optional[Union[int, float]]:
+        """The maximum hourly cost for spot instances in USD."""
+        return self._max_hourly_cost_spot
 
     @property
     def is_image_managed(self) -> Optional[bool]:
@@ -1528,6 +1549,23 @@ class Resources:
                     'The following labels are invalid:'
                     '\n\t' + invalid_table.get_string().replace('\n', '\n\t'))
 
+    def _try_validate_max_prices(self) -> None:
+        """Try to validate the max_hourly_cost attributes.
+
+        Raises:
+            ValueError: if the attribute is invalid.
+        """
+        if self._max_hourly_cost is not None and self._max_hourly_cost < 0:
+            with ux_utils.print_exception_no_traceback():
+                raise ValueError(f'max_hourly_cost must be non-negative, got '
+                                 f'{self._max_hourly_cost}')
+        if (self._max_hourly_cost_spot is not None and
+                self._max_hourly_cost_spot < 0):
+            with ux_utils.print_exception_no_traceback():
+                raise ValueError(
+                    f'max_hourly_cost_spot must be non-negative, got '
+                    f'{self._max_hourly_cost_spot}')
+
     def get_cost(self, seconds: float) -> float:
         """Returns cost in USD for the runtime in seconds."""
         hours = seconds / 3600
@@ -1959,6 +1997,10 @@ class Resources:
             autostop=override.pop('autostop', current_autostop_config),
             priority=override.pop('priority', self.priority),
             volumes=override.pop('volumes', self.volumes),
+            max_hourly_cost=override.pop('max_hourly_cost',
+                                         self.max_hourly_cost),
+            max_hourly_cost_spot=override.pop('max_hourly_cost_spot',
+                                              self.max_hourly_cost_spot),
             infra=override.pop('infra', None),
             _docker_login_config=override.pop('_docker_login_config',
                                               self._docker_login_config),
@@ -2282,6 +2324,10 @@ class Resources:
         resources_fields['autostop'] = config.pop('autostop', None)
         resources_fields['priority'] = config.pop('priority', None)
         resources_fields['volumes'] = config.pop('volumes', None)
+        resources_fields['max_hourly_cost'] = config.pop(
+            'max_hourly_cost', None)
+        resources_fields['max_hourly_cost_spot'] = config.pop(
+            'max_hourly_cost_spot', None)
         resources_fields['_docker_login_config'] = config.pop(
             '_docker_login_config', None)
         resources_fields['_docker_username_for_runpod'] = config.pop(
@@ -2359,6 +2405,8 @@ class Resources:
         add_if_not_none('_no_missing_accel_warnings',
                         self._no_missing_accel_warnings)
         add_if_not_none('priority', self.priority)
+        add_if_not_none('max_hourly_cost', self.max_hourly_cost)
+        add_if_not_none('max_hourly_cost_spot', self.max_hourly_cost_spot)
         if self._docker_login_config is not None:
             config['_docker_login_config'] = dataclasses.asdict(
                 self._docker_login_config)
@@ -2533,6 +2581,10 @@ class Resources:
         if version < 28:
             self._no_missing_accel_warnings = state.get(
                 '_no_missing_accel_warnings', None)
+
+        if version < 29:
+            self._max_hourly_cost = None
+            self._max_hourly_cost_spot = None
 
         self.__dict__.update(state)
 
