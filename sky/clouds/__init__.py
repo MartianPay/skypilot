@@ -27,6 +27,7 @@ from sky.clouds.mithril import Mithril
 from sky.clouds.nebius import Nebius
 from sky.clouds.oci import OCI
 from sky.clouds.paperspace import Paperspace
+from sky.clouds.ppio import PPIO
 from sky.clouds.primeintellect import PrimeIntellect
 from sky.clouds.runpod import RunPod
 from sky.clouds.scp import SCP
@@ -70,6 +71,7 @@ __all__ = [
     'Mithril',
     'Seeweb',
     'Yotta',
+    'PPIO',
     # Utility functions
     'cloud_in_iterable',
 ]

@@ -428,6 +428,22 @@ def setup_shadeform_authentication(config: Dict[str, Any]) -> Dict[str, Any]:
     return configure_ssh_info(config)
 
 
+def setup_ppio_authentication(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Sets up SSH authentication for PPIO.
+
+    PPIO exposes SSH via user-provided key; we simply ensure a key exists
+    locally and wire it into the Ray template.
+    """
+    _, public_key_path = auth_utils.get_or_generate_keys()
+
+    # Ensure auth section exists
+    config.setdefault('auth', {})
+    config['auth']['ssh_user'] = 'root'
+    config['auth']['ssh_public_key'] = public_key_path
+
+    return configure_ssh_info(config)
+
+
 def setup_primeintellect_authentication(
         config: Dict[str, Any]) -> Dict[str, Any]:
     """Sets up SSH authentication for Prime Intellect.

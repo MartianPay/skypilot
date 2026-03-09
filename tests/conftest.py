@@ -98,6 +98,7 @@ all_clouds_in_smoke_tests = [
     'coreweave',
     'slurm',
     'mithril',
+    'ppio',
 ]
 default_clouds_to_run = ['aws', 'azure']
 
@@ -130,6 +131,7 @@ cloud_to_pytest_keyword = {
     'coreweave': 'coreweave',
     'slurm': 'slurm',
     'mithril': 'mithril',
+    'ppio': 'ppio',
 }
 
 
